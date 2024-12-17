@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kocka játék</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+            background-color: #e9e9e9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            height: 100vh;
+            text-align: center;
+            overflow: hidden;
+        }
+
+        h1 {
+            font-size: 48px;
+            color: #333;
+            margin-bottom: 20px;
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
+
+        #gameCanvas {
+            border-radius: 10px;
+            border: 4px solid #333;
+            background-color: #f1f1f1;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            display: none;
+            margin-bottom: 20px;
+            transition: all 0.5s ease-in-out;
+        }
+
+        #score,
+        #bestScore {
+            font-size: 24px;
+            font-weight: bold;
+            color: #444;
+            margin-top: 20px;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        #startButton,
+        #resetButton {
+            padding: 12px 30px;
+            font-size: 20px;
+            font-weight: bold;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s ease-in-out;
+            margin: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        #startButton:hover,
+        #resetButton:hover {
+            background-color: #45a049;
+            transform: scale(1.05);
+        }
+
+        #startButton:disabled,
+        #resetButton:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        #resetButton {
+            display: none;
+        }
+
+        .fadeIn {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            0% {
+                opacity: 0;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        .player {
+            border-radius: 8px;
+        }
+
+        .fallingBlock {
+            border-radius: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Kocka játék</h1>
+    <button id="startButton" class="fadeIn">Játék indítás</button>
+    <button id="resetButton" class="fadeIn">Új játék</button>
+    <div id="score" class="fadeIn">Pontszám: 0</div>
+    <div id="bestScore" class="fadeIn">Legjobb pontszám: 0</div>
+    <canvas id="gameCanvas" width="500" height="500"></canvas>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        let playerSize = 30;
+        let playerX = canvas.width / 2 - playerSize / 2;
+        let playerY = canvas.height - playerSize - 10;
+        let playerSpeed = 5;
+        let score = 0;
+        let bestScore = 0;
+        let fallingBlocks = [];
+        let blockSpeed = 3;
+        let blockWidth = 30;
+        let blockHeight = 30;
+        let blockCreationInterval;
+        let gameLoopInterval;
+
+        function drawPlayer() {
+            ctx.fillStyle = "#2196F3";
+            ctx.fillRect(playerX, playerY, playerSize, playerSize);
+        }
+
+        function drawBlocks() {
+            ctx.fillStyle = "#333";
+            for (let i = 0; i < fallingBlocks.length; i++) {
+                ctx.fillRect(fallingBlocks[i].x, fallingBlocks[i].y, blockWidth, blockHeight);
+            }
+        }
+
+        function drawScore() {
+            document.getElementById("score").textContent = `Pontszám: ${score}`;
+        }
+
+        function drawBestScore() {
+            document.getElementById("bestScore").textContent = `Legjobb pontszám: ${bestScore}`;
+        }
+
+        function movePlayer(e) {
+            if (e.key === "ArrowLeft" && playerX > 0) {
+                playerX -= playerSpeed;
+            }
+            if (e.key === "ArrowRight" && playerX + playerSize < canvas.width) {
+                playerX += playerSpeed;
+            }
+        }
+
+        function createFallingBlock() {
+            const x = Math.random() * (canvas.width - blockWidth);
+            fallingBlocks.push({ x: x, y: 0 });
+        }
+
+        function moveBlocks() {
+            for (let i = fallingBlocks.length - 1; i >= 0; i--) {
+                fallingBlocks[i].y += blockSpeed;
+
+                if (
+                    fallingBlocks[i].y + blockHeight >= playerY &&
+                    fallingBlocks[i].x < playerX + playerSize &&
+                    fallingBlocks[i].x + blockWidth > playerX
+                ) {
+                    endGame();
+                }
+
+                if (fallingBlocks[i].y > canvas.height) {
+                    fallingBlocks.splice(i, 1);
+                    score++;
+                }
+            }
+        }
+
+        function endGame() {
+            if (score > bestScore) {
+                bestScore = score;
+            }
+            clearInterval(blockCreationInterval);
+            clearInterval(gameLoopInterval);
+            document.getElementById("score").textContent = `Game Over! Final Score: ${score}`;
+            drawBestScore();
+            document.getElementById("resetButton").style.display = "inline-block";
+            document.getElementById("startButton").disabled = true;
+        }
+
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            moveBlocks(); 
+            drawPlayer(); 
+            drawBlocks();  
+            drawScore(); 
+        }
+
+        function startGame() {
+            score = 0;
+            fallingBlocks = [];
+            playerX = canvas.width / 2 - playerSize / 2;
+            playerY = canvas.height - playerSize - 10;
+            document.getElementById("score").textContent = `Pontszám: 0`;
+            document.getElementById("startButton").disabled = true;
+            document.getElementById("resetButton").style.display = "none";
+            canvas.style.display = "block";
+            canvas.classList.add("fadeIn");
+            blockCreationInterval = setInterval(createFallingBlock, 1000);
+            gameLoopInterval = setInterval(gameLoop, 1000 / 60);
+        }
+
+        function resetGame() {
+            clearInterval(blockCreationInterval);
+            clearInterval(gameLoopInterval);
+            document.getElementById("score").textContent = "Pontszám: 0";
+            canvas.style.display = "none";
+            document.getElementById("startButton").disabled = false; 
+            document.getElementById("resetButton").style.display = "none";
+            drawBestScore();
+        }
+
+        document.getElementById("startButton").addEventListener("click", startGame);
+        document.getElementById("resetButton").addEventListener("click", resetGame);
+        window.addEventListener("keydown", movePlayer);
+    </script>
+</body>
+
+</html>
